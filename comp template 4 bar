@@ -1,0 +1,185 @@
+/*----------------------------------------------------------------------------*/
+/*                                                                            */
+/*    Module:       main.cpp                                                  */
+/*    Author:       VEX                                                       */
+/*    Created:      Thu Sep 26 2019                                           */
+/*    Description:  Competition Template                                      */
+/*                                                                            */
+/*----------------------------------------------------------------------------*/
+
+// ---- START VEXCODE CONFIGURED DEVICES ----
+// ---- END VEXCODE CONFIGURED DEVICES ----
+
+#include "vex.h"
+
+using namespace vex;
+
+// A global instance of competition
+vex::competition Competition;
+//Used for printing the V5 brain screen
+vex::brain       Brain;
+vex::motor       rmfrnt = vex::motor(vex::PORT1);
+vex::motor       lmfrnt = vex::motor(vex::PORT1);
+vex::motor       rmbtm = vex::motor(vex::PORT6, true);
+vex::motor       lmbtm = vex::motor(vex::PORT3);
+vex::motor       rmtp = vex::motor(vex::PORT9);
+vex::motor       lmtp = vex::motor(vex::PORT4, true);
+vex::motor       liftmr = vex::motor(vex::PORT11);
+vex::motor       liftml = vex::motor(vex::PORT20, true);
+vex::motor       Input = vex::motor(vex::PORT7);
+
+vex::controller  Controller = vex::controller();
+
+//drivegeneral
+const int SCALE = 120;
+void tank(int r, int l) {
+  rmbtm.spin(fwd, r*SCALE, voltageUnits::mV);
+  rmtp.spin(fwd, r*SCALE, voltageUnits::mV);
+  lmbtm.spin(fwd, l*SCALE, voltageUnits::mV);
+  lmtp.spin(fwd, l*SCALE, voltageUnits::mV);
+}
+
+//liftmacros
+void liftmov(int pos, int speed) {
+  liftml.startRotateTo(pos, rotationUnits::deg, speed, velocityUnits::pct);
+  liftmr.startRotateTo(pos, rotationUnits::deg, speed, velocityUnits::pct);
+}
+//rotations -160 (top) to -1540 (bottom) (degrees)
+
+
+// define your global instances of motors and other devices here
+
+/*---------------------------------------------------------------------------*/
+/*                          Pre-Autonomous Functions                         */
+/*                                                                           */
+/*  You may want to perform some actions before the competition starts.      */
+/*  Do them in the following function.  You must return from this function   */
+/*  or the autonomous and usercontrol tasks will not be started.  This       */
+/*  function is only called once after the V5 has been powered on and        */
+/*  not every time that the robot +++is disabled.                               */
+/*---------------------------------------------------------------------------*/
+
+void pre_auton(void) {
+  // Initializing Robot Configuration. DO NOT REMOVE!
+  vexcodeInit();
+
+  // All activities that occur before the competition starts
+  // Example: clearing encoders, setting servo positions, ...
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              Autonomous Task                              */
+/*                                                                           */
+/*  This task is used to control your robot during the autonomous phase of   */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+
+void autonomous(void) {
+  // ..........................................................................
+  // Insert autonomous user code here.
+  tank(50, 50);
+  wait(250, msec);
+  tank(0, 0);
+  // ..........................................................................
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              User Control Task                            */
+/*                                                                           */
+/*  This task is used to control your robot during the user control phase of */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+
+void usercontrol(void) {
+  // User control code here, inside the loop
+  int liftspeed = 100;
+  int inputspeed = 20;
+  int holdinginputspeed = 100;
+  const int THRESH = 5;
+  while (1) {
+    // This is the main execution loop for the user control program.
+    // Each time through the loop your program should update motor + servo
+    // values based on feedback from the joysticks.
+
+    // ........................................................................
+    // Insert user code here. This is where you use the joystick values to
+    // update your motors, etc.
+    // ........................................................................
+    
+    
+    //drive
+    int l_joy = abs(Controller.Axis2.value())>THRESH ? Controller.Axis2.value() : 0;
+    int r_joy = abs(Controller.Axis3.value())>THRESH ? Controller.Axis3.value() : 0;
+    tank(l_joy, r_joy);
+
+
+    //input_lifts
+    if(Controller.ButtonA.pressing()) {
+      Input.spin(vex::directionType::rev, inputspeed ,vex::velocityUnits::pct);
+    }
+
+    else if(Controller.ButtonB.pressing()) {
+      Input.spin(vex::directionType::fwd, inputspeed ,vex::velocityUnits::pct);
+    }
+
+    else{
+      Input.stop(vex::brakeType::brake);
+    }
+
+    //holding_input_speed
+    
+    if(Controller.ButtonLeft.pressing()) {
+      Input.spin(vex::directionType::rev, holdinginputspeed ,vex::velocityUnits::pct);
+    }
+
+    else if(Controller.ButtonRight.pressing()) {
+      Input.spin(vex::directionType::fwd, holdinginputspeed ,vex::velocityUnits::pct);
+    }
+
+    else{
+      Input.stop(vex::brakeType::brake);
+    }
+
+    //second_drive
+    
+
+    //Lift
+    if(Controller.ButtonR1.pressing()) {
+      liftmov(300, 100);
+    }
+    
+    else if(Controller.ButtonR2.pressing()) {
+      liftmov(2000, 100);
+    }
+
+    else {
+      liftmov(30, 75);
+    }
+
+    wait(20, msec); // Sleep the task for a short amount of time to
+                    // prevent wasted resources.
+  }
+}
+
+//
+// Main will set up the competition functions and callbacks.
+//
+int main() {
+  // Set up callbacks for autonomous and driver control periods.
+  Competition.autonomous(autonomous);
+  Competition.drivercontrol(usercontrol);
+
+  // Run the pre-autonomous function. x
+  pre_auton();
+
+  // Prevent main from exiting with an infinite loop.
+  while (true) {
+    wait(100, msec);
+  }
+}
